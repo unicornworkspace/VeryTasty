@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+venv/
+.venv/
+env/
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node
+node_modules/
+.next/
+out/
+*.local
+
+# Logs
+*.log
+
+# Media
+media/
+static/
+
+# Build
+dist/
+build/
+
+# Coverage
+htmlcov/
+.coverage
+.pytest_cache/
+.mypy_cache/
+
+# OS
+*.pem
+*.key

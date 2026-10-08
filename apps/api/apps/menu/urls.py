@@ -1,5 +1,12 @@
-from django.urls import path
+from django.urls import include, path
+from rest_framework.routers import DefaultRouter
 
-app_name = 'menu'
+from .views import CategoryViewSet, MenuItemViewSet
 
-urlpatterns = []
+router = DefaultRouter()
+router.register(r'categories', CategoryViewSet, basename='category')
+router.register(r'items', MenuItemViewSet, basename='menuitem')
+
+urlpatterns = [
+    path('', include(router.urls)),
+]

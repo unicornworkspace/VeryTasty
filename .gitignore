@@ -39,7 +39,7 @@ out/
 
 # Media
 media/
-static/
+staticfiles/
 
 # Build
 dist/

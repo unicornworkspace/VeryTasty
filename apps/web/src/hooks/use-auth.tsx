@@ -34,37 +34,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Initialize auth state from localStorage
   useEffect(() => {
     const initAuth = async () => {
+      console.log('[AUTH] Initializing auth...');
+      
       const storedToken = localStorage.getItem('access_token');
       const storedRefresh = localStorage.getItem('refresh_token');
       
+      console.log('[AUTH] Stored token:', storedToken ? 'YES' : 'NO');
+      console.log('[AUTH] Stored refresh:', storedRefresh ? 'YES' : 'NO');
+      
       if (!storedToken) {
+        console.log('[AUTH] No token found, user is guest');
         setIsLoading(false);
         return;
       }
 
       try {
+        console.log('[AUTH] Trying to get user profile with stored token...');
         // Сначала пробуем валидный токен
         const profile = await getUserProfile();
+        console.log('[AUTH] Profile loaded successfully:', profile);
         setUser(profile);
         setToken(storedToken);
       } catch (error) {
-        console.warn('Access token invalid, attempting refresh...');
+        console.warn('[AUTH] Access token invalid, attempting refresh...');
+        console.error('[AUTH] Error:', error);
+        
         // Токен истёк, пробуем обновить
         if (storedRefresh) {
           try {
+            console.log('[AUTH] Refreshing token...');
             const refreshed = await refreshAccessToken(storedRefresh);
+            console.log('[AUTH] Token refreshed successfully');
             localStorage.setItem('access_token', refreshed.access_token);
             setToken(refreshed.access_token);
             const newProfile = await getUserProfile();
+            console.log('[AUTH] New profile loaded:', newProfile);
             setUser(newProfile);
           } catch (refreshError) {
-            console.error('Token refresh failed, clearing session:', refreshError);
+            console.error('[AUTH] Token refresh failed, clearing session:', refreshError);
             localStorage.removeItem('access_token');
             localStorage.removeItem('refresh_token');
             setUser(null);
             setToken(null);
           }
         } else {
+          console.log('[AUTH] No refresh token, clearing session');
           localStorage.removeItem('access_token');
           setUser(null);
           setToken(null);

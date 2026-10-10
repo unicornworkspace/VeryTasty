@@ -10,7 +10,7 @@ import Link from 'next/link';
 import { QRCodeSVG } from 'qrcode.react';
 
 export default function ClubPage() {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading, logout } = useAuth();
   const { data: loyalty, isLoading: loyaltyLoading } = useLoyaltyBalance();
   const { data: qrData, isLoading: qrLoading } = useLoyaltyQrToken();
   const [showLoginModal, setShowLoginModal] = useState(false);

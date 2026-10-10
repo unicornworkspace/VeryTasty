@@ -1,0 +1,18 @@
+# Django и DRF
+Django>=4.2,<5.0
+djangorestframework>=3.14,<4.0
+django-cors-headers>=4.3,<5.0
+django-filter>=23.0
+drf-spectacular>=0.26
+
+# Базы данных (опционально)
+# psycopg2-binary>=2.9  # Для PostgreSQL
+# redis>=5.0  # Для Celery
+
+# Celery (опционально)
+# celery>=5.3
+# redis>=5.0
+
+# Утилиты
+Pillow>=10.0
+python-dateutil>=2.8

@@ -10,5 +10,5 @@ urlpatterns = [
     path('logout/', views.logout, name='logout'),
 
     # User profile
-    path('me/', views.UserMeView.as_view(), name='user-me'),
+    path('me/', views.user_me, name='user-me'),
 ]

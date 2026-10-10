@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCart } from '@/stores/cart-store';
@@ -29,9 +29,27 @@ export function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [cartReady, setCartReady] = useState(false);
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
-  const { itemCount, total, items } = useCart();
+  
+  // Получаем items напрямую
+  const items = useCart((state) => state.items);
+  
+  // Вычисляем itemCount и total напрямую из items
+  const itemCount = useMemo(() => {
+    return items.reduce((sum, item) => sum + item.qty, 0);
+  }, [items]);
+  
+  const total = useMemo(() => {
+    return items.reduce((sum, item) => sum + item.price * item.qty, 0);
+  }, [items]);
+
+  // Проверяем, что корзина инициализирована
+  useEffect(() => {
+    setCartReady(true);
+    console.log('[HEADER] Cart ready, itemCount:', itemCount);
+  }, [itemCount]);
 
   // Отслеживаем скролл для тени
   useEffect(() => {
@@ -42,6 +60,14 @@ export function Header() {
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Debug
+  useEffect(() => {
+    console.log('[HEADER] Items:', items);
+    console.log('[HEADER] itemCount:', itemCount);
+    console.log('[HEADER] total:', total);
+    console.log('[HEADER] Showing cart:', cartReady && itemCount > 0);
+  }, [items, itemCount, total, cartReady]);
 
   return (
     <>
@@ -96,18 +122,18 @@ export function Header() {
               )}
             </button>
 
-            {/* Корзина */}
-            {itemCount > 0 && (
+            {/* Корзина — показываем всегда когда есть товары */}
+            {cartReady && itemCount > 0 && (
               <Link
                 href="/checkout"
-                className="flex items-center gap-2 bg-accent text-text-inverse px-4 py-2 rounded-lg font-semibold text-small hover:bg-accent-hover transition-colors shadow-md hover:shadow-lg"
+                className="flex items-center gap-2 bg-accent text-text-inverse px-4 py-2 rounded-lg font-semibold text-small hover:bg-accent-hover transition-colors shadow-md hover:shadow-lg cursor-pointer"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
-                <span>{itemCount}</span>
-                <span className="hidden lg:inline">·</span>
-                <span className="hidden lg:inline">
+                <span className="font-bold">{itemCount}</span>
+                <span className="hidden xl:inline">·</span>
+                <span className="hidden xl:inline">
                   {new Intl.NumberFormat('ru-RU', {
                     style: 'currency',
                     currency: 'RUB',

@@ -1,4 +1,4 @@
-from rest_framework import generics, permissions, status
+from rest_framework import permissions, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 
@@ -10,27 +10,7 @@ from .serializers import (
     LoyaltyTransactionSerializer,
 )
 from .services import get_account_balance, get_transaction_history
-
-
-class IsAuthenticated(permissions.BasePermission):
-    """Custom authentication using signed access tokens."""
-
-    def has_permission(self, request, view):
-        auth_header = request.META.get('HTTP_AUTHORIZATION', '')
-        if not auth_header.startswith('Bearer '):
-            return False
-
-        token = auth_header[7:]
-        try:
-            from django.core.signing import Signer, BadSignature, SignatureExpired
-            signer = Signer(salt='access_token')
-            payload = signer.unsign_object(token, max_age=900)
-
-            user = User.objects.get(id=payload['user_id'])
-            request.user = user
-            return True
-        except (BadSignature, SignatureExpired, User.DoesNotExist, KeyError):
-            return False
+from ..auth.auth_utils import get_user_from_request
 
 
 class AllowAny(permissions.AllowAny):
@@ -39,58 +19,84 @@ class AllowAny(permissions.AllowAny):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def get_loyalty_me(request):
     """Get current user's loyalty balance."""
-    account = get_account_balance(request.user)
-    serializer = LoyaltyAccountSerializer(account)
-    return Response(serializer.data)
+    user, error = get_user_from_request(request)
+    if error:
+        return error
+    
+    try:
+        account = get_account_balance(user)
+        serializer = LoyaltyAccountSerializer(account)
+        return Response(serializer.data)
+    except Exception as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def get_loyalty_history(request):
     """Get current user's loyalty transaction history."""
-    transactions = get_transaction_history(request.user, limit=50)
-    serializer = LoyaltyTransactionSerializer(transactions, many=True)
-    return Response(serializer.data)
+    user, error = get_user_from_request(request)
+    if error:
+        return error
+    
+    try:
+        transactions = get_transaction_history(user, limit=50)
+        serializer = LoyaltyTransactionSerializer(transactions, many=True)
+        return Response(serializer.data)
+    except Exception as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def get_loyalty_qr_token(request):
     """Generate a QR token for the user with persistent link."""
-    from django.core.signing import Signer
-    from django.utils import timezone
-    import secrets
+    user, error = get_user_from_request(request)
+    if error:
+        return error
     
-    # Создаём уникальный токен для QR
-    nonce = secrets.token_hex(16)
-    created_at = timezone.now().isoformat()
-    
-    # Кодируем через Django Signer (как везде в проекте)
-    signer = Signer(salt='qr_token')
-    payload = {
-        'user_id': request.user.id,
-        'phone': request.user.phone,
-        'nonce': nonce,
-        'created_at': created_at,
-    }
-    token = signer.sign_object(payload)
-    
-    return Response({
-        'token': token,
-        'phone': request.user.phone,
-        'expires_at': (timezone.now().timestamp() + 3600),  # 1 час
-    })
+    try:
+        from django.core.signing import Signer
+        from django.utils import timezone
+        import secrets
+        
+        nonce = secrets.token_hex(16)
+        created_at = timezone.now().isoformat()
+        
+        signer = Signer(salt='qr_token')
+        payload = {
+            'user_id': user.id,
+            'phone': user.phone,
+            'nonce': nonce,
+            'created_at': created_at,
+        }
+        token = signer.sign_object(payload)
+        
+        return Response({
+            'token': token,
+            'phone': user.phone,
+            'expires_at': (timezone.now().timestamp() + 3600),
+        })
+    except Exception as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def verify_loyalty_qr_token(request):
     """Verify a QR token and return user info (for KDS/POS terminals)."""
-    from django.core.signing import Signer, BadSignature, SignatureExpired
-    
     token = request.data.get('token', '')
     if not token:
         return Response(
@@ -99,13 +105,13 @@ def verify_loyalty_qr_token(request):
         )
     
     try:
-        signer = Signer(salt='qr_token')
-        payload = signer.unsign_object(token, max_age=3600)  # 1 час
+        from django.core.signing import Signer, BadSignature, SignatureExpired
         
-        from apps.users.models import User
+        signer = Signer(salt='qr_token')
+        payload = signer.unsign_object(token, max_age=3600)
+        
         user = User.objects.get(id=payload['user_id'])
         
-        # Получаем баланс лояльности
         account = get_account_balance(user)
         
         return Response({
@@ -124,4 +130,9 @@ def verify_loyalty_qr_token(request):
         return Response(
             {'valid': False, 'error': 'Пользователь не найден'},
             status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )

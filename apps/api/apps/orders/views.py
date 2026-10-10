@@ -1,49 +1,29 @@
-from rest_framework import status
+from rest_framework import permissions, status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import BasePermission
 from rest_framework.response import Response
 
 from .models import Request
 from .serializers import RequestSerializer, RequestCreateSerializer
 from .services import create_request, get_user_requests, get_request_by_id
+from ..auth.auth_utils import get_user_from_request
 
 
-class IsAuthenticated(BasePermission):
-    """Custom authentication using signed access tokens."""
-
-    def has_permission(self, request, view):
-        auth_header = request.META.get('HTTP_AUTHORIZATION', '')
-        if not auth_header.startswith('Bearer '):
-            return False
-
-        token = auth_header[7:]
-        try:
-            from django.core.signing import Signer, BadSignature, SignatureExpired
-            signer = Signer(salt='access_token')
-            payload = signer.unsign_object(token, max_age=900)
-
-            from apps.users.models import User
-            user = User.objects.get(id=payload['user_id'])
-            request.user = user
-            return True
-        except (BadSignature, SignatureExpired, User.DoesNotExist, KeyError):
-            return False
-
-
-class AllowAnyPermission(BasePermission):
+class AllowAny(permissions.AllowAny):
     """Permission class allowing all requests."""
-    
-    def has_permission(self, request, view):
-        return True
+    pass
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def create_order(request):
     """Создаёт новую заявку от пользователя."""
+    user, error = get_user_from_request(request)
+    if error:
+        return error
+    
     try:
         order = create_request(
-            user=request.user,
+            user=user,
             items_data=request.data.get('items', []),
             comment=request.data.get('comment', ''),
         )
@@ -59,9 +39,13 @@ def create_order(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def list_orders(request):
     """Получает список заявок пользователя."""
+    user, error = get_user_from_request(request)
+    if error:
+        return error
+    
     limit = request.query_params.get('limit', 50)
     status_filter = request.query_params.get('status')
     
@@ -72,56 +56,76 @@ def list_orders(request):
     except (ValueError, TypeError):
         limit = 50
     
-    orders = get_user_requests(
-        user=request.user,
-        limit=limit,
-        status=status_filter,
-    )
-    
-    serializer = RequestSerializer(orders, many=True)
-    return Response(serializer.data)
+    try:
+        orders = get_user_requests(
+            user=user,
+            limit=limit,
+            status=status_filter,
+        )
+        
+        serializer = RequestSerializer(orders, many=True)
+        return Response(serializer.data)
+    except Exception as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def get_order(request, pk):
     """Получает детальную информацию о заявке."""
-    order = get_request_by_id(pk, user=request.user)
+    user, error = get_user_from_request(request)
+    if error:
+        return error
     
-    if not order:
+    try:
+        order = get_request_by_id(pk, user=user)
+        
+        if not order:
+            return Response(
+                {'error': 'Заявка не найдена'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        serializer = RequestSerializer(order)
+        return Response(serializer.data)
+    except Exception as e:
         return Response(
-            {'error': 'Заявка не найдена'},
-            status=status.HTTP_404_NOT_FOUND
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
-    
-    serializer = RequestSerializer(order)
-    return Response(serializer.data)
 
 
 @api_view(['PATCH'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def update_order_status(request, pk):
     """
     Обновляет статус заявки.
     Только для внутреннего использования (KDS/POS).
     """
-    order = get_request_by_id(pk, user=request.user)
-    
-    if not order:
-        return Response(
-            {'error': 'Заявка не найдена'},
-            status=status.HTTP_404_NOT_FOUND
-        )
-    
-    new_status = request.data.get('status')
-    
-    if not new_status:
-        return Response(
-            {'error': 'Статус не указан'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
+    user, error = get_user_from_request(request)
+    if error:
+        return error
     
     try:
+        order = get_request_by_id(pk, user=user)
+        
+        if not order:
+            return Response(
+                {'error': 'Заявка не найдена'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        new_status = request.data.get('status')
+        
+        if not new_status:
+            return Response(
+                {'error': 'Статус не указан'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
         from apps.orders.models import Request as RequestModel
         from apps.orders.services import update_request_status
         
@@ -133,4 +137,9 @@ def update_order_status(request, pk):
         return Response(
             {'error': str(e)},
             status=status.HTTP_400_BAD_REQUEST
+        )
+    except Exception as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )

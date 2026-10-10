@@ -15,19 +15,23 @@ export const useCart = create<CartState>((set, get) => ({
   items: [],
 
   addItem: (item) => {
+    console.log('[CART] addItem called:', item);
     set((state) => {
       const existing = state.items.find((i) => i.menuItemId === item.menuItemId);
       if (existing) {
-        return {
-          items: state.items.map((i) =>
-            i.menuItemId === item.menuItemId
-              ? { ...i, qty: i.qty + 1 }
-              : i
-          ),
-        };
+        const newItems = state.items.map((i) =>
+          i.menuItemId === item.menuItemId
+            ? { ...i, qty: i.qty + 1 }
+            : i
+        );
+        console.log('[CART] Item quantity increased:', newItems);
+        return { items: newItems };
       }
-      return { items: [...state.items, { ...item, qty: 1 }] };
+      const newItems = [...state.items, { ...item, qty: 1 }];
+      console.log('[CART] Item added:', newItems);
+      return { items: newItems };
     });
+    console.log('[CART] Current state:', get());
   },
 
   removeItem: (menuItemId) => {

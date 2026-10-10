@@ -1,10 +1,9 @@
 import logging
 
 from django.utils import timezone
-from rest_framework import generics, permissions, status
+from rest_framework import permissions, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework.views import APIView
 
 from apps.users.models import User
 
@@ -26,6 +25,56 @@ from .serializers import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def authenticate_request(request):
+    """
+    Аутентифицирует запрос используя signed tokens.
+    Возвращает (user, error_response).
+    Если error_response не None - запрос не аутентифицирован.
+    """
+    auth_header = request.META.get('HTTP_AUTHORIZATION', '')
+    
+    if not auth_header.startswith('Bearer '):
+        return None, Response(
+            {'detail': 'Учетные данные не были предоставлены.'},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+    
+    token = auth_header[7:]
+    
+    try:
+        from django.core.signing import Signer, BadSignature, SignatureExpired
+        signer = Signer(salt='access_token')
+        payload = signer.unsign_object(token)  # Без TTL - токен валиден пока не подделан
+        
+        user_id = payload.get('user_id')
+        if not user_id:
+            return None, Response(
+                {'detail': 'Недействительный токен'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        
+        user = User.objects.get(id=user_id)
+        return user, None
+        
+    except (BadSignature, SignatureExpired) as e:
+        logger.warning(f"Auth failed: {e}")
+        return None, Response(
+            {'detail': 'Недействительный или истёкший токен'},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+    except User.DoesNotExist:
+        return None, Response(
+            {'detail': 'Пользователь не найден'},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+    except Exception as e:
+        logger.error(f"Auth error: {e}", exc_info=True)
+        return None, Response(
+            {'detail': f'Ошибка аутентификации: {str(e)}'},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
 
 
 class AllowAny(permissions.AllowAny):
@@ -181,38 +230,30 @@ def logout(request):
     }, status=status.HTTP_200_OK)
 
 
-class UserMeView(generics.RetrieveUpdateAPIView):
+@api_view(['GET', 'PATCH'])
+@permission_classes([AllowAny])  # Аутентификация внутри функции
+def user_me(request):
     """Get or update current user profile."""
-
-    serializer_class = UserMeSerializer
-    permission_classes = [IsAuthenticated]  # Используем кастомную аутентификацию
-
-    def get_object(self):
-        return self.request.user
-
-    def get_serializer_class(self):
-        if self.request.method == 'PATCH':
-            return UserUpdateSerializer
-        return UserMeSerializer
-
-
-class IsAuthenticated(permissions.BasePermission):
-    """Custom authentication using signed access tokens."""
-
-    def has_permission(self, request, view):
-        auth_header = request.META.get('HTTP_AUTHORIZATION', '')
-        if not auth_header.startswith('Bearer '):
-            return False
-
-        token = auth_header[7:]
-        try:
-            from django.core.signing import Signer, BadSignature, SignatureExpired
-            signer = Signer(salt='access_token')
-            payload = signer.unsign_object(token, max_age=900)  # 15 min TTL
-
-            # Load user
-            user = User.objects.get(id=payload['user_id'])
-            request.user = user
-            return True
-        except (BadSignature, SignatureExpired, User.DoesNotExist, KeyError):
-            return False
+    # Используем отдельную функцию аутентификации
+    user, error = authenticate_request(request)
+    
+    if error:
+        return error
+    
+    try:
+        if request.method == 'GET':
+            serializer = UserMeSerializer(user)
+            return Response(serializer.data)
+        
+        elif request.method == 'PATCH':
+            serializer = UserUpdateSerializer(user, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data)
+            
+    except Exception as e:
+        logger.error(f"user_me error: {e}", exc_info=True)
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

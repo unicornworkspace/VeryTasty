@@ -2,6 +2,8 @@ from rest_framework import generics, permissions, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 
+from apps.users.models import User
+
 from .models import LoyaltyAccount, LoyaltyTransaction
 from .serializers import (
     LoyaltyAccountSerializer,
@@ -24,7 +26,6 @@ class IsAuthenticated(permissions.BasePermission):
             signer = Signer(salt='access_token')
             payload = signer.unsign_object(token, max_age=900)
 
-            from apps.users.models import User
             user = User.objects.get(id=payload['user_id'])
             request.user = user
             return True

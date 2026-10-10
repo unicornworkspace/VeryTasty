@@ -18,7 +18,7 @@ def check_health():
     """Проверка доступности бэкенда"""
     print_step(1, "Проверка доступности бэкенда")
     try:
-        r = requests.get(f"{API_BASE}/health/", timeout=3)
+        r = requests.get("http://localhost:8000/health", timeout=3)
         print(f"✅ Бэкенд доступен! Status: {r.status_code}")
         print(f"Response: {r.text}")
         return True

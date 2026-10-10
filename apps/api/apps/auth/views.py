@@ -185,7 +185,7 @@ class UserMeView(generics.RetrieveUpdateAPIView):
     """Get or update current user profile."""
 
     serializer_class = UserMeSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated]  # Используем кастомную аутентификацию
 
     def get_object(self):
         return self.request.user

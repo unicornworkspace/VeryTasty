@@ -144,11 +144,37 @@ export default function ClubPage() {
             </div>
           </>
         ) : (
-          <div className="text-center space-y-2">
-            <p className="text-small text-text-secondary">Не удалось загрузить QR-код</p>
-            <Button size="sm" onClick={() => window.location.reload()}>
-              Попробовать снова
-            </Button>
+          <div className="text-center space-y-4">
+            <svg
+              className="w-12 h-12 mx-auto text-error"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <p className="text-body text-text-secondary">
+              Не удалось загрузить QR-код
+            </p>
+            <p className="text-small text-text-muted">
+              Возможно, сессия истекла. Попробуйте выйти и войти снова.
+            </p>
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <Button size="sm" onClick={() => window.location.reload()}>
+                Обновить
+              </Button>
+              <button
+                onClick={() => { logout(); window.location.href = '/'; }}
+                className="text-accent font-semibold body text-small cursor-pointer hover:underline"
+              >
+                Выйти и войти снова
+              </button>
+            </div>
           </div>
         )}
       </div>

@@ -1,6 +1,6 @@
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import BasePermission
 from rest_framework.response import Response
 
 from .models import Request
@@ -8,7 +8,7 @@ from .serializers import RequestSerializer, RequestCreateSerializer
 from .services import create_request, get_user_requests, get_request_by_id
 
 
-class IsAuthenticated(permissions.BasePermission):
+class IsAuthenticated(BasePermission):
     """Custom authentication using signed access tokens."""
 
     def has_permission(self, request, view):
@@ -30,9 +30,11 @@ class IsAuthenticated(permissions.BasePermission):
             return False
 
 
-class AllowAny(permissions.AllowAny):
+class AllowAnyPermission(BasePermission):
     """Permission class allowing all requests."""
-    pass
+    
+    def has_permission(self, request, view):
+        return True
 
 
 @api_view(['POST'])

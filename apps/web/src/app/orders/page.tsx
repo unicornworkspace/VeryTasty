@@ -124,9 +124,14 @@ export default function OrdersPage() {
           <p className="text-body text-text-secondary">
             Не удалось загрузить заказы
           </p>
-          <Button onClick={() => window.location.reload()}>
-            Попробовать снова
-          </Button>
+          <p className="text-small text-text-muted">
+            Проверьте подключение к интернету или обновите страницу
+          </p>
+          <div className="flex items-center justify-center gap-3 pt-2">
+            <Button onClick={() => window.location.reload()}>
+              Обновить
+            </Button>
+          </div>
         </div>
       ) : !orders || (Array.isArray(orders) && orders.length === 0) ? (
         <div className="text-center py-16 space-y-4">

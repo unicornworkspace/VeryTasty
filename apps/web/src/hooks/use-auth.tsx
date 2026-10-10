@@ -35,33 +35,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const initAuth = async () => {
       const storedToken = localStorage.getItem('access_token');
-      if (storedToken) {
-        try {
-          const profile = await getUserProfile();
-          setUser(profile);
-          setToken(storedToken);
-        } catch (error) {
-          console.error('Failed to validate token:', error);
-          // Token is invalid, try to refresh
-          const refreshToken = localStorage.getItem('refresh_token');
-          if (refreshToken) {
-            try {
-              const refreshed = await refreshAccessToken(refreshToken);
-              localStorage.setItem('access_token', refreshed.access_token);
-              setToken(refreshed.access_token);
-              const newProfile = await getUserProfile();
-              setUser(newProfile);
-            } catch (refreshError) {
-              console.error('Token refresh failed:', refreshError);
-              localStorage.removeItem('access_token');
-              localStorage.removeItem('refresh_token');
-            }
-          } else {
-            localStorage.removeItem('access_token');
-          }
-        }
+      const storedRefresh = localStorage.getItem('refresh_token');
+      
+      if (!storedToken) {
+        setIsLoading(false);
+        return;
       }
-      setIsLoading(false);
+
+      try {
+        // Сначала пробуем валидный токен
+        const profile = await getUserProfile();
+        setUser(profile);
+        setToken(storedToken);
+      } catch (error) {
+        console.warn('Access token invalid, attempting refresh...');
+        // Токен истёк, пробуем обновить
+        if (storedRefresh) {
+          try {
+            const refreshed = await refreshAccessToken(storedRefresh);
+            localStorage.setItem('access_token', refreshed.access_token);
+            setToken(refreshed.access_token);
+            const newProfile = await getUserProfile();
+            setUser(newProfile);
+          } catch (refreshError) {
+            console.error('Token refresh failed, clearing session:', refreshError);
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            setUser(null);
+            setToken(null);
+          }
+        } else {
+          localStorage.removeItem('access_token');
+          setUser(null);
+          setToken(null);
+        }
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     initAuth();

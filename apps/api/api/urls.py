@@ -10,6 +10,11 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
+# Customize admin site
+admin.site.site_header = 'Особо Вкусно — Админ-панель'
+admin.site.site_title = 'Особо Вкусно'
+admin.site.index_title = 'Добро пожаловать в Админ-панель'
+
 
 @api_view(['GET'])
 def health_check(request):

@@ -8,6 +8,9 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
+LANGUAGE_CODE = 'ru-ru'
+TIME_ZONE = 'Europe/Moscow'
+
 # Database - use SQLite for local development
 DATABASES = {
     'default': {

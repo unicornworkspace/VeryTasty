@@ -6,3 +6,4 @@ class MenuConfig(AppConfig):
     name = 'apps.menu'
     label = 'menu'
     verbose_name = 'Меню'
+    verbose_name = 'Меню'

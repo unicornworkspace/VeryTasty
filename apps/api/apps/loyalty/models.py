@@ -62,6 +62,14 @@ class LoyaltyTransaction(models.Model):
         verbose_name='Гость',
         related_name='loyalty_transactions',
     )
+    account = models.ForeignKey(
+        'LoyaltyAccount',
+        on_delete=models.CASCADE,
+        verbose_name='Счёт лояльности',
+        related_name='transactions',
+        null=True,
+        blank=True,
+    )
     type = models.CharField('Тип', max_length=20, choices=TYPE_CHOICES)
     amount = models.DecimalField('Сумма', max_digits=10, decimal_places=2)
     reference_type = models.CharField('Тип ссылки', max_length=50, blank=True, default='')

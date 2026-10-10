@@ -1,5 +1,14 @@
 from django.urls import path
 
-app_name = 'auth'
+from . import views
 
-urlpatterns = []
+urlpatterns = [
+    # Auth flows
+    path('request-otp/', views.request_otp, name='request-otp'),
+    path('verify-otp/', views.verify_otp, name='verify-otp'),
+    path('refresh/', views.token_refresh, name='token-refresh'),
+    path('logout/', views.logout, name='logout'),
+
+    # User profile
+    path('me/', views.UserMeView.as_view(), name='user-me'),
+]

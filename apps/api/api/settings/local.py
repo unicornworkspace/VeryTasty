@@ -19,8 +19,10 @@ DATABASES = {
     }
 }
 
-# Celery - use eager backend for local testing if Redis is not available
-CELERY_TASK_ALWAYS_EAGER = False
+# Celery - use in-memory broker if Redis is not available
+CELERY_TASK_ALWAYS_EAGER = True
+CELERY_BROKER_URL = 'memory://'
+CELERY_RESULT_BACKEND = 'cache+memory://'
 
 # Email backend for local development (console)
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

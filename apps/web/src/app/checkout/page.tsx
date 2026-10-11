@@ -253,15 +253,15 @@ function CartItem({ item }: { item: { menuItemId: number; name: string; price: n
         <div className="flex items-center gap-2">
           <button
             onClick={() => updateQty(item.menuItemId, item.qty - 1)}
-            className="w-8 h-8 rounded-sm border border-border flex items-center justify-center text-body font-bold hover:bg-bg-light transition-colors cursor-pointer"
+            className="w-10 h-10 rounded-lg border-2 border-border flex items-center justify-center text-xl font-bold hover:bg-bg-light transition-colors cursor-pointer"
             aria-label="Уменьшить количество"
           >
             −
           </button>
-          <span className="w-8 text-center body font-semibold">{item.qty}</span>
+          <span className="w-10 text-center text-lg font-semibold">{item.qty}</span>
           <button
             onClick={() => updateQty(item.menuItemId, item.qty + 1)}
-            className="w-8 h-8 rounded-sm bg-accent text-text-inverse flex items-center justify-center text-body font-bold hover:bg-accent-hover transition-colors cursor-pointer"
+            className="w-10 h-10 rounded-lg bg-accent text-text-inverse flex items-center justify-center text-xl font-bold hover:bg-accent-hover transition-colors cursor-pointer"
             aria-label="Увеличить количество"
           >
             +

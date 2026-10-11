@@ -57,7 +57,9 @@ export const useCart = create<CartState>((set, get) => ({
   },
 
   get total() {
-    return get().items.reduce((sum, item) => sum + item.price * item.qty, 0);
+    const total = get().items.reduce((sum, item) => sum + item.price * item.qty, 0);
+    console.log('[CART] Total calculated:', total, 'items:', get().items);
+    return Math.round(total * 100) / 100;
   },
 
   get itemCount() {

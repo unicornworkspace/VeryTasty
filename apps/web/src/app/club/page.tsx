@@ -239,10 +239,10 @@ function StepCard({
 }) {
   return (
     <div className="space-y-3">
-      <div className="w-12 h-12 rounded-full bg-accent text-text-inverse flex items-center justify-center text-h3 font-bold">
+      <div className="w-16 h-16 rounded-full bg-accent text-text-inverse flex items-center justify-center text-2xl font-bold">
         {step}
       </div>
-      <h3 className="font-semibold body text-text-primary">{title}</h3>
+      <h3 className="font-semibold text-body text-text-primary">{title}</h3>
       <p className="text-small text-text-secondary">{description}</p>
     </div>
   );

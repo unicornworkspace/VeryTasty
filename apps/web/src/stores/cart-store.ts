@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import type { CartItem } from '@/lib/types';
 
 interface CartState {
@@ -11,58 +12,57 @@ interface CartState {
   get itemCount(): number;
 }
 
-export const useCart = create<CartState>((set, get) => ({
-  items: [],
+export const useCart = create<CartState>()(
+  persist(
+    (set, get) => ({
+      items: [],
 
-  addItem: (item) => {
-    console.log('[CART] addItem called:', item);
-    set((state) => {
-      const existing = state.items.find((i) => i.menuItemId === item.menuItemId);
-      if (existing) {
-        const newItems = state.items.map((i) =>
-          i.menuItemId === item.menuItemId
-            ? { ...i, qty: i.qty + 1 }
-            : i
-        );
-        console.log('[CART] Item quantity increased:', newItems);
-        return { items: newItems };
-      }
-      const newItems = [...state.items, { ...item, qty: 1 }];
-      console.log('[CART] Item added:', newItems);
-      return { items: newItems };
-    });
-    console.log('[CART] Current state:', get());
-  },
+      addItem: (item) => {
+        set((state) => {
+          const existing = state.items.find((i) => i.menuItemId === item.menuItemId);
+          if (existing) {
+            return {
+              items: state.items.map((i) =>
+                i.menuItemId === item.menuItemId ? { ...i, qty: i.qty + 1 } : i
+              ),
+            };
+          }
+          return { items: [...state.items, { ...item, qty: 1 }] };
+        });
+      },
 
-  removeItem: (menuItemId) => {
-    set((state) => ({
-      items: state.items.filter((i) => i.menuItemId !== menuItemId),
-    }));
-  },
+      removeItem: (menuItemId) => {
+        set((state) => ({
+          items: state.items.filter((i) => i.menuItemId !== menuItemId),
+        }));
+      },
 
-  updateQty: (menuItemId, qty) => {
-    if (qty <= 0) {
-      get().removeItem(menuItemId);
-      return;
+      updateQty: (menuItemId, qty) => {
+        if (qty <= 0) {
+          get().removeItem(menuItemId);
+          return;
+        }
+        set((state) => ({
+          items: state.items.map((i) =>
+            i.menuItemId === menuItemId ? { ...i, qty } : i
+          ),
+        }));
+      },
+
+      clear: () => {
+        set({ items: [] });
+      },
+
+      get total() {
+        return Math.round(get().items.reduce((sum, item) => sum + item.price * item.qty, 0) * 100) / 100;
+      },
+
+      get itemCount() {
+        return get().items.reduce((sum, item) => sum + item.qty, 0);
+      },
+    }),
+    {
+      name: 'cart-storage',
     }
-    set((state) => ({
-      items: state.items.map((i) =>
-        i.menuItemId === menuItemId ? { ...i, qty } : i
-      ),
-    }));
-  },
-
-  clear: () => {
-    set({ items: [] });
-  },
-
-  get total() {
-    const total = get().items.reduce((sum, item) => sum + item.price * item.qty, 0);
-    console.log('[CART] Total calculated:', total, 'items:', get().items);
-    return Math.round(total * 100) / 100;
-  },
-
-  get itemCount() {
-    return get().items.reduce((sum, item) => sum + item.qty, 0);
-  },
-}));
+  )
+);

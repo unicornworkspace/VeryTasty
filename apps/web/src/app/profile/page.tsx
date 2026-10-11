@@ -9,7 +9,7 @@ import { useToast } from '@/stores/toast-store';
 import { User } from '@/lib/types';
 
 export default function ProfilePage() {
-  const { user: authUser, refreshUser } = useAuth();
+  const { user } = useAuth();
   const { add: addToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -17,10 +17,10 @@ export default function ProfilePage() {
   const [name, setName] = useState('');
 
   useEffect(() => {
-    if (authUser?.id) {
+    if (user?.id) {
       loadProfile();
     }
-  }, [authUser?.id]);
+  }, [user?.id]);
 
   const loadProfile = async () => {
     try {
@@ -39,7 +39,6 @@ export default function ProfilePage() {
     try {
       const updated = await updateUserProfile({ name });
       setProfile(updated);
-      await refreshUser();
       addToast({ message: 'Профиль обновлён', type: 'success' });
     } catch (error) {
       addToast({ message: 'Ошибка сохранения', type: 'error' });
@@ -48,7 +47,7 @@ export default function ProfilePage() {
     }
   };
 
-  if (!authUser) {
+  if (!user) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-16 text-center">
         <p className="text-body text-text-secondary">Войдите в аккаунт</p>
